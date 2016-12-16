@@ -27,9 +27,10 @@
   "bin": "./cli.js",
   "dependencies": {
     "glob": "^5.0.3",
+    "istanbul": "0.3.x",
+    "minimatch": "^3.0.3",
     "minimist": "^1.1.1",
-    "q": "^1.2.0",
-    "istanbul": "0.3.x"
+    "q": "^1.2.0"
   },
   "devDependencies": {
     "mocha": "^2.2.4"

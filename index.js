@@ -5,6 +5,7 @@ var readFile = Q.denodeify(fs.readFile);
 var Report = require('istanbul').Report;
 var Collector = require('istanbul').Collector;
 var path = require('path');
+var minimatch = require('minimatch');
 
 function makeReporterDefs(options) {
   var result = [];
@@ -68,6 +69,20 @@ function writeCombinedReportsSync(reporterDefs, collector) {
   });
 }
 
+function buildCustomBase(file, base, baseHasMagic) {
+  var re,
+    newBase;
+  if(baseHasMagic) {
+    re = minimatch.makeRe(base);
+    re = new RegExp(re.toString().slice(1, -2));
+    newBase = re.exec(file);
+    if(newBase) {
+      base = newBase[0];
+    }    
+  }
+  return base;
+}
+
 function collectInputReports(pattern, base) {
   var realpathCache = Object.create(null);
   var cache = Object.create(null);
@@ -79,6 +94,7 @@ function collectInputReports(pattern, base) {
   var filePaths = Object.create(null);
   var collectorDefer = Q.defer();
   var allPatterns = [];
+  var baseHasMagic = glob.hasMagic(base);
 
   if (typeof pattern == 'string') {
     pattern = [pattern];
@@ -110,7 +126,7 @@ function collectInputReports(pattern, base) {
         }
         filePaths[filePath] = true;
         fileContentPromises.push(readFile(filePath, 'utf-8').then(function(fileContents){
-          collector.add(fixRelativePaths(JSON.parse(fileContents), base));
+          collector.add(fixRelativePaths(JSON.parse(fileContents), buildCustomBase(filePath, base, baseHasMagic)));
           return true;
         }));
       })
@@ -128,6 +144,7 @@ function collectInputReportsSync(pattern, base){
   var cache = Object.create(null);
   var statCache = Object.create(null);
   var symlinks = Object.create(null);
+  var baseHasMagic = glob.hasMagic(base);
   if ('string' === typeof pattern) {
     pattern = [pattern];
   }
@@ -140,7 +157,7 @@ function collectInputReportsSync(pattern, base){
       symlinks: symlinks
     }).forEach(function(file){
       var jsonReport = JSON.parse(fs.readFileSync(file, 'utf-8'));
-      collector.add(fixRelativePaths(jsonReport, base));
+      collector.add(fixRelativePaths(jsonReport, buildCustomBase(file, base, baseHasMagic)));
     });
   });
   return collector;
